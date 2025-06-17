@@ -43,7 +43,14 @@ async function getFacebookUid(link) {
 }
 
 bot.onText(/\/(start|help)/, (msg) => {
-  bot.sendMessage(msg.chat.id, 'Send me a Facebook profile link to get the UID.');
+  bot.sendMessage(
+    msg.chat.id,
+    '👋 *Welcome to Facebook UID Bot!*\n\n' +
+    '🔹 To get a Facebook UID, send a link in this format:\n' +
+    '`https://facebook.com/profile.php?id=123456789`\n\n' +
+    '⚠️ *Note:* Username links (like facebook.com/username) will not work due to Facebook\'s bot restrictions.',
+    { parse_mode: 'Markdown' }
+  );
 });
 
 bot.on('message', async (msg) => {
