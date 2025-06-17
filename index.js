@@ -1,6 +1,16 @@
 const TelegramBot = require('node-telegram-bot-api');
 const axios = require('axios');
 
+// --- UptimeRobot keep-alive server ---
+const http = require('http');
+const PORT = process.env.PORT || 3000;
+http.createServer((req, res) => {
+  res.writeHead(200, {'Content-Type': 'text/plain'});
+  res.end('Bot is alive!\n');
+}).listen(PORT, () => {
+  console.log('Keep-alive server running on port', PORT);
+});
+
 const TOKEN = process.env.TELEGRAM_BOT_TOKEN;
 const bot = new TelegramBot(TOKEN, { polling: true });
 
@@ -39,14 +49,34 @@ bot.onText(/\/(start|help)/, (msg) => {
 bot.on('message', async (msg) => {
   const text = msg.text && msg.text.trim();
   if (!text || text.startsWith('/')) return;
+  
   if (!text.includes('facebook.com')) {
-    bot.sendMessage(msg.chat.id, 'Please send a valid Facebook profile link.');
+    await bot.sendMessage(msg.chat.id, '❌ Please send a valid Facebook profile link.');
     return;
   }
-  const uid = await getFacebookUid(text);
-  if (uid) {
-    bot.sendMessage(msg.chat.id, `Facebook UID: ${uid}`);
-  } else {
-    bot.sendMessage(msg.chat.id, 'Could not extract UID. Please check the link.');
+
+  // Check if it's a numeric ID link
+  const numericIdMatch = text.match(/facebook\.com\/profile\.php\?id=(\d+)/);
+  if (numericIdMatch) {
+    await bot.sendMessage(msg.chat.id, `✅ Facebook UID: ${numericIdMatch[1]}`);
+    return;
   }
+
+  // For username links, explain the limitation
+  const usernameMatch = text.match(/facebook\.com\/([^/?]+)/);
+  if (usernameMatch) {
+    await bot.sendMessage(
+      msg.chat.id,
+      `⚠️ Facebook blocks bots from accessing username-based links.\n\n` +
+      `To get a UID, please use a numeric profile link like this:\n` +
+      `https://facebook.com/profile.php?id=123456789`
+    );
+    return;
+  }
+
+  // Fallback for any other format
+  await bot.sendMessage(
+    msg.chat.id,
+    '❌ Unsupported link format. Please use a valid Facebook profile link.'
+  );
 });
